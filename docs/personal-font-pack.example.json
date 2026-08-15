@@ -1,0 +1,24 @@
+{
+  "fonts": [
+    { "family": "함초롬바탕", "file": "HANBatang.TTF" },
+    { "family": "함초롬바탕", "file": "HANBatangB.TTF", "weight": "700" },
+    { "family": "함초롬돋움", "file": "HANDotum.TTF" },
+    { "family": "함초롬돋움", "file": "HANDotumB.TTF", "weight": "700" },
+    { "family": "바탕", "file": "batang.ttc" },
+    { "family": "바탕체", "file": "batang.ttc" },
+    { "family": "궁서", "file": "batang.ttc" },
+    { "family": "궁서체", "file": "batang.ttc" },
+    { "family": "굴림", "file": "gulim.ttc" },
+    { "family": "굴림체", "file": "gulim.ttc" },
+    { "family": "돋움", "file": "gulim.ttc" },
+    { "family": "돋움체", "file": "gulim.ttc" },
+    { "family": "맑은 고딕", "file": "malgun.ttf" },
+    { "family": "맑은 고딕", "file": "malgunbd.ttf", "weight": "700" },
+    { "family": "맑은 고딕 Semilight", "file": "malgunsl.ttf", "weight": "300" },
+    { "family": "휴먼명조", "file": "HMKMM.TTF" },
+    { "family": "HY견명조", "file": "H2MJRE.TTF" },
+    { "family": "HY그래픽M", "file": "H2GPRM.TTF" },
+    { "family": "한컴바탕", "file": "HBATANG.TTF" },
+    { "family": "한컴돋움", "file": "HDOTUM.TTF" }
+  ]
+}

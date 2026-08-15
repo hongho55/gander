@@ -1,0 +1,15 @@
+.gradle/
+build/
+local.properties
+.DS_Store
+.idea/
+*.iml
+captures/
+
+# Signing key stays local, never in the public repo
+keystore/
+dist/
+
+# Locally licensed personal font pack for the `personal` flavor only. Never add
+# these files to Git or put them in a public/shared APK.
+app/src/personal/assets/viewer/private-fonts/

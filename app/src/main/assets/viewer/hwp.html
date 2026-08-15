@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HWP document</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  body { background: #263238; }
+  #pages { padding: 14px 8px; }
+  .hwp-page {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .5);
+    margin: 0 auto 14px;
+    min-height: 80px;
+    overflow: hidden;
+  }
+  .hwp-page svg { display: block; width: 100%; height: auto; }
+  .hwp-page-loading { color: #eceff1; padding: 28px 0; text-align: center; }
+</style>
+</head>
+<body>
+<div id="vw-status" class="vw-status">Opening document…</div>
+<div id="pages"></div>
+<script src="app.js"></script>
+<script type="module">
+import init, { HwpDocument } from "./lib/rhwp/rhwp.js";
+
+let measureContext;
+let lastFont = "";
+globalThis.measureTextWidth = function (font, text) {
+  if (!measureContext) measureContext = document.createElement("canvas").getContext("2d");
+  if (font !== lastFont) {
+    measureContext.font = font;
+    lastFont = font;
+  }
+  return measureContext.measureText(text).width;
+};
+
+// The public flavor has no manifest at this path. The personal flavor may have a
+// locally supplied, gitignored manifest beside licensed font files. Loading is
+// deliberately local-only: no font is downloaded and none is sent anywhere.
+async function loadPrivateFonts() {
+  let manifest;
+  try {
+    const response = await fetch("./private-fonts/manifest.json", { cache: "no-store" });
+    if (!response.ok) return;
+    manifest = await response.json();
+  } catch (error) {
+    console.warn("Private font manifest could not be loaded", error);
+    return;
+  }
+  const fonts = Array.isArray(manifest && manifest.fonts) ? manifest.fonts : [];
+  for (const item of fonts) {
+    const family = typeof item.family === "string" ? item.family.trim() : "";
+    const file = typeof item.file === "string" ? item.file.trim() : "";
+    const weight = typeof item.weight === "string" && /^(normal|bold|[1-9]00)$/.test(item.weight)
+      ? item.weight
+      : "normal";
+    // Keep every request inside this bundled private-font directory.
+    if (!family || !/^[^/\\]+\.(ttf|ttc|otf|woff2?)$/i.test(file)) continue;
+    try {
+      const face = new FontFace(
+        family,
+        'url("./private-fonts/' + encodeURIComponent(file) + '")',
+        { weight }
+      );
+      await face.load();
+      document.fonts.add(face);
+    } catch (error) {
+      console.warn("Private font could not be loaded: " + family, error);
+    }
+  }
+  await document.fonts.ready;
+}
+
+function namespaceSvg(svg, pageIndex) {
+  const prefix = "hwp-page-" + pageIndex + "-";
+  return svg
+    .replace(/\bid="([^"]+)"/g, function (_, id) { return 'id="' + prefix + id + '"'; })
+    .replace(/url\(#([^)]+)\)/g, "url(#" + prefix + "$1)")
+    .replace(/\b(href|xlink:href)="#([^"]+)"/g, function (_, name, id) {
+      return name + '="#' + prefix + id + '"';
+    });
+}
+
+function makePage(doc, index) {
+  const holder = document.createElement("section");
+  holder.className = "hwp-page";
+  const loading = document.createElement("div");
+  loading.className = "hwp-page-loading";
+  loading.textContent = "Rendering page " + (index + 1) + "…";
+  holder.appendChild(loading);
+
+  let rendered = false;
+  const render = function () {
+    if (rendered) return;
+    rendered = true;
+    try {
+      holder.innerHTML = namespaceSvg(doc.renderPageSvg(index), index);
+    } catch (error) {
+      holder.innerHTML = "";
+      const message = document.createElement("div");
+      message.className = "hwp-page-loading";
+      message.textContent = "This page could not be rendered.";
+      holder.appendChild(message);
+      console.error("HWP page render failed", index, error);
+    }
+  };
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(function (entries) {
+      if (entries.some(function (entry) { return entry.isIntersecting; })) {
+        observer.disconnect();
+        render();
+      }
+    }, { rootMargin: "800px 0px" });
+    observer.observe(holder);
+  } else {
+    render();
+  }
+  return holder;
+}
+
+try {
+  await init({ module_or_path: "./lib/rhwp/rhwp_bg.wasm" });
+  await loadPrivateFonts();
+  const bytes = new Uint8Array(await vwFetchDoc("buffer"));
+  const doc = new HwpDocument(bytes);
+  const pageCount = doc.pageCount();
+  if (pageCount < 1) throw new Error("The document has no pages.");
+
+  const pages = document.getElementById("pages");
+  for (let index = 0; index < pageCount; index++) pages.appendChild(makePage(doc, index));
+  vwStatusDone();
+} catch (error) {
+  vwError("Could not open this HWP/HWPX document", String(error && error.message || error));
+}
+</script>
+</body>
+</html>
